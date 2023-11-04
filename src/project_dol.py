@@ -553,9 +553,15 @@ class ProjectDOL:
 
                 #if self._quote_mismatch(zh, en):
                 #    logger.warning(f"\t!!! 半角双引号数量不匹配：https://paratranz.cn/projects/{PARATRANZ_PROJECT_WE_ID if type_manual == 'world' else PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(en)}")
-                #    logger.warning(f"\t {en} | {zh}")
+                #    logger.warning(f"\t {target_file.__str__()} | {en} | {zh}")
                 #    if debug_flag:
                 #        webbrowser.open(f"https://paratranz.cn/projects/{PARATRANZ_PROJECT_WE_ID if type_manual == 'world' else PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(en)}")
+
+                if self._graveaccent_mismatch(zh, en):
+                    logger.warning(f"\t!!! 重音符`数量不匹配：https://paratranz.cn/projects/{PARATRANZ_PROJECT_WE_ID if type_manual == 'world' else PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(en)}")
+                    logger.warning(f"\t {en} | {zh}")
+                    if debug_flag:
+                        webbrowser.open(f"https://paratranz.cn/projects/{PARATRANZ_PROJECT_WE_ID if type_manual == 'world' else PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(en)}")
                 
                 if self._is_different_event(zh, en):
                     logger.warning(f"\t!!! 可能的事件名称错翻：{en} | {zh} | https://paratranz.cn/projects/{PARATRANZ_PROJECT_WE_ID if type_manual == 'world' else PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(en)}")
@@ -679,6 +685,16 @@ class ProjectDOL:
         else:
             return False
 
+    @staticmethod
+    def _graveaccent_mismatch(line_zh: str, line_en: str):
+        graveaccent_difference = line_en.count("`") - line_zh.count("`")
+        if graveaccent_difference % 2 == 1:
+            return True
+        elif graveaccent_difference > 0:
+            return True
+        else:
+            return False
+    
     @staticmethod
     def _is_lack_square(line_zh: str, line_en: str):
         """缺一个 [ 或 ]"""
