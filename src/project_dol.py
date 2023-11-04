@@ -680,6 +680,7 @@ class ProjectDOL:
         #    if quote_difference % 2 == 1:
         #        return False
 
+        # 以原文为准，符号奇偶数不对
         if quote_difference % 2 == 1:
             return True
         else:
@@ -688,9 +689,11 @@ class ProjectDOL:
     @staticmethod
     def _graveaccent_mismatch(line_zh: str, line_en: str):
         graveaccent_difference = line_en.count("`") - line_zh.count("`")
-        if graveaccent_difference % 2 == 1:
+        # 缺少重音符，译文能多不能少
+        if graveaccent_difference > 0:
             return True
-        elif graveaccent_difference > 0:
+        # 以原文为准，符号奇偶数不对
+        elif graveaccent_difference % 2 == 1:
             return True
         else:
             return False
