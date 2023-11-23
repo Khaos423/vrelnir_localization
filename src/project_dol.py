@@ -215,12 +215,18 @@ class ProjectDOL:
             content = fp.read()
         if file.name.endswith(SUFFIX_TWEE):
             pt = ParseTextTwee(lines, file)
+            pre_bool_list = pt.pre_parse_set_to()
         elif file.name.endswith(SUFFIX_JS):
             pt = ParseTextJS(lines, file)
             target_file = f"{target_file}.js"
         else:
             return
         able_lines = pt.parse()
+        if file.name.endswith(SUFFIX_TWEE) and pt.pre_bool_list:
+            able_lines = [
+                True if pre_bool_list[idx] or line else False
+                for idx, line in enumerate(able_lines)
+            ]
 
         if not any(able_lines):
             logger.warning(f"\t- ***** 文件 {file} 无有效翻译行 !")
@@ -357,7 +363,11 @@ class ProjectDOL:
         logger.info(f"##### {self._mention_name}字典更新完毕 !\n")
 
     async def _update_for_gather(self, old_file: Path, new_file: Path, json_file: Path):
-        """gather 用"""
+        """
+        gather 用
+        :param old_file: 下载的汉化文件的绝对路径
+        :param new_file: 本地新抓字典文件的绝对路径
+        """
         if not new_file.exists():
             unavailable_file = DIR_RAW_DICTS / self._type / self._version / "csv" / "game" / "失效词条" / Path().joinpath(*old_file.parts[old_file.parts.index("utf8")+1:])
             os.makedirs(unavailable_file.parent, exist_ok=True)
@@ -408,7 +418,7 @@ class ProjectDOL:
             if old_en not in new_ens:
                 # logger.info(f"\t- old: {old_en}")
                 unavailables.append(old_data[idx_])
-        unavailable_file = DIR_RAW_DICTS / self._type / self._version / "csv" / "game" / "失效词条" / os.path.join(*old_file.parts[1:]) if unavailables else None
+        unavailable_file = DIR_RAW_DICTS / self._type / self._version / "csv" / "game" / "失效词条" / Path().joinpath(*old_file.parts[old_file.parts.index("utf8")+1:]) if unavailables else None
         with open(old_file,  "w", encoding="utf-8-sig", newline="") as fp:
             csv.writer(fp).writerows(old_data)
 
@@ -443,7 +453,7 @@ class ProjectDOL:
 
                 json_data = [
                     item for item in json_data
-                    if item["original"] != item["translation"]
+                    if item["original"] != item["translation"] and item["translation"]
                 ]
                 integrated_dict.extend(json_data)
         i18n_dict = await self._wash_json(integrated_dict)
@@ -523,7 +533,6 @@ class ProjectDOL:
 
     async def _apply_for_gather(self, csv_file: Path, target_file: Path, debug_flag: bool = False, type_manual: str = None):
         """gather 用"""
-        vip_flag = target_file.name == "clothing-sets.twee"
         with open(target_file, "r", encoding="utf-8") as fp:
             raw_targets: list[str] = fp.readlines()
         raw_targets_temp = raw_targets.copy()
@@ -532,11 +541,11 @@ class ProjectDOL:
 
         with open(csv_file, "r", encoding="utf-8") as fp:
             for row in csv.reader(fp):
-                if len(row) < 3 and not vip_flag:  # 没汉化
+                if len(row) < 3:  # 没汉化
                     continue
                 en, zh = row[-2:]
                 en, zh = en.strip(), zh.strip()
-                if not zh and not vip_flag:  # 没汉化/汉化为空
+                if not zh:  # 没汉化/汉化为空
                     continue
 
                 zh = re.sub('^(“)', '"', zh)
@@ -572,51 +581,9 @@ class ProjectDOL:
                     if not target_row.strip():
                         continue
 
-                    if '<<widget "listdancingclothes">>' in target_row:
-                        needed_replace_outfit_name_cap_flag = True
-                    elif needed_replace_outfit_name_cap_flag and "<</widget>>" in target_row:
-                        needed_replace_outfit_name_cap_flag = False
-
-                    if "replace(/[^a-zA-Z" in target_row.strip():
-                        raw_targets[idx_] = target_row.replace("replace(/[^a-zA-Z", "replace(/[^a-zA-Z\\u4e00-\\u9fa5")
-                        continue
                     if en == target_row.strip():
-                        if "clothing-set" in csv_file.name and "_outfit.name" in target_row:
-                            raw_targets[idx_] = target_row.replace(en, zh).replace(" \n", "\n").lstrip(" ")
-                            if not needed_replace_outfit_name_cap_flag:
-                                raw_targets[idx_] = raw_targets[idx_].replace(".cn_name_cap", ".name")
-                            raw_targets_temp[idx_] = ""
-                            continue
                         raw_targets[idx_] = target_row.replace(en, zh).replace(" \n", "\n").lstrip(" ")
-                        if "<<print" in target_row and re.findall(r"<<print.*?\.writing>>", zh):
-                            raw_targets[idx_] = raw_targets[idx_].replace(".writing>>", ".writ_cn>>")
-                        elif ".name_cap" not in target_row:
-                            raw_targets_temp[idx_] = ""
-                            continue
-
-                        if "<<link " in target_row and re.findall(r"<<link.*?\.name_cap>>", zh):
-                            raw_targets[idx_] = raw_targets[idx_].replace(".name_cap>>", ".cn_name_cap>>")
-                        elif "<<clothingicon" in target_row and re.findall(r"<<clothingicon.*?\.name_cap", zh):
-                            raw_targets[idx_] = raw_targets[idx_].replace(".name_cap", ".cn_name_cap")
-                        elif "_wornItemData.name_cap" in target_row:
-                            raw_targets[idx_] = raw_targets[idx_].replace(".name_cap", ".cn_name_cap")
                         raw_targets_temp[idx_] = ""
-                        continue
-                        
-                    elif "<" in target_row:
-                        if "<<print" in target_row and re.findall(r"<<print.*?\.writing>>", target_row):
-                            raw_targets[idx_] = raw_targets[idx_].replace(".writing>>", ".writ_cn>>")
-                        elif ".name_cap" not in target_row:
-                            continue
-
-                        if "<<link " in target_row and re.findall(r"<<link.*?\.name_cap>>", target_row):
-                            raw_targets[idx_] = raw_targets[idx_].replace(".name_cap>>", ".cn_name_cap>>")
-                        elif "<<clothingicon" in target_row and re.findall(r"<<clothingicon.*?\.name_cap", target_row):
-                            raw_targets[idx_] = raw_targets[idx_].replace(".name_cap", ".cn_name_cap")
-                        elif "_wornItemData.name_cap" in target_row:
-                            raw_targets[idx_] = raw_targets[idx_].replace(".name_cap", ".cn_name_cap")
-                    # elif target_row.strip() == "].select($_rng)>>":  # 怪东西
-                    #     raw_targets[idx_] = ""
 
         if target_file.name.endswith(".js"):
             try:
@@ -1079,7 +1046,6 @@ class ProjectDOL:
         # logger.info(f"status: {response.status_code}")
         # with open(DIR_TEMP_ROOT / "modloader.zip", "wb") as fp:
         #     fp.write(response.content)
-
 
 
 __all__ = [

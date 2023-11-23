@@ -4,6 +4,7 @@
 *.zip
 *.7z
 *.xmind
+CREDITS-*.md
 
 .env
 .vscode
@@ -15,6 +16,7 @@ degrees-of-lewdity-master
 degrees-of-lewdity-world-expansion-master
 dolandriod
 dol-chinese
+setto
 
 paratranz
 temp
@@ -22,3 +24,4 @@ raw_dicts
 
 commits.json
 i18n.json
+0.4.3.0.json
