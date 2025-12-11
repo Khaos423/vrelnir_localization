@@ -543,6 +543,12 @@ class ProjectDOL:
 					logger.warning(f"\t!!! 可能的事件名称错翻：{en} | {zh} | https://paratranz.cn/projects/{PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(en)}")
 					if debug_flag:
 						webbrowser.open(f"https://paratranz.cn/projects/{PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(en)}")
+				if self._is_lack_generate(zh, en):
+					logger.warning(f"\t!!! 可能的generate宏遗漏：{en} | {zh} | https://paratranz.cn/projects/{PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(en)}")
+					if debug_flag:
+						webbrowser.open(f"https://paratranz.cn/projects/{PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(en)}")
+				self._is_lack_quotes(zh, en)
+
 
 				for idx_, target_row in enumerate(raw_targets_temp):
 					if not target_row.strip():
@@ -657,6 +663,17 @@ class ProjectDOL:
 		return event_en != event_zh
 
 	@staticmethod
+	def _is_lack_generate(line_zh: str, line_en: str):
+		"""缺少<<generate>>类宏"""
+		if "<<generate" not in line_en or not line_zh:
+			return False
+		generate_en = re.findall(r"<<generate", line_en)
+		if not generate_en:
+			return False
+		generate_zh = re.findall(r"<<generate", line_zh)
+		return generate_en != generate_zh
+
+	@staticmethod
 	def _is_full_notation_new(line_zh: str, line_en: str):
 		"""半全角打错了"""
 		if "cn_name" in line_zh or "writ_cn" in line_zh:
@@ -666,13 +683,21 @@ class ProjectDOL:
 		return len(left_angle_double_en) != len(left_angle_double_zh)
 
 	@staticmethod
-	def _is_lack_yin(line_zh: str, line_en: str):
-		"""缺少引号"""
-		right_angle_double_en = re.findall(r'(")', line_en)
-		right_angle_double_zh = re.findall(r'(")', line_zh)
-		return (
-			(len(right_angle_double_en) - len(right_angle_double_zh))%2 != 0
-		)
+	def _is_lack_quotes(line_zh: str, line_en: str):
+		"""引号大逃杀"""
+		q_patterns = ["""r'[\u201c\u201d"]',""" r'\'', r'`']
+		q_chinese = ["""'双引号',""" '单引号', '反引号']
+		for idx_, q_pattern in enumerate(q_patterns):
+			quotes_en = re.findall(q_pattern, line_en)
+			quotes_zh = re.findall(q_pattern, line_zh)
+			if q_pattern == r'\'':
+				quotes_en_s = re.findall(r'\b[a-zA-Z]\'[a-zA-Z]\b', line_en)
+				if (len(quotes_en) - len(quotes_en_s) - len(quotes_zh)) % 2 != 0:
+					logger.warning(f"\t!!! 可能的{q_chinese[idx_]}错误：{line_en} | {line_zh} | https://paratranz.cn/projects/{PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(line_en)}")
+			else:
+				if (len(quotes_en) - len(quotes_zh)) % 2 != 0:
+					logger.warning(f"\t!!! 可能的{q_chinese[idx_]}错误：{line_en} | {line_zh} | https://paratranz.cn/projects/{PARATRANZ_PROJECT_DOL_ID}/strings?text={quote(line_en)}")
+
 
 	@staticmethod
 	def _is_full_comma(line: str):
