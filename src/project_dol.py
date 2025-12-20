@@ -767,10 +767,13 @@ class ProjectDOL:
 
 	def replace_banner(self):
 		"""汉化版条幅"""
-		shutil.copyfile(
-			DIR_DATA_ROOT / "img" / "banner.png",
-			DIR_GAME_ROOT_COMMON / "img" / "misc" / "banner.png"
-		)
+		BANNER_CN_PATH = DIR_DATA_ROOT / "img" / "misc" / "locations" / "banner"
+		BANNER_PATH = DIR_GAME_ROOT_COMMON / "img" / "misc" / "locations" / "banner"
+		for BANNER_NAME in os.listdir(BANNER_CN_PATH):
+			shutil.copyfile(
+				BANNER_CN_PATH / BANNER_NAME,
+				BANNER_PATH / BANNER_NAME
+			)
 
 	def change_version(self, version: str = ""):
 		"""修改版本号"""
