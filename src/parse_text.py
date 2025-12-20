@@ -25,7 +25,7 @@ class ParseTextTwee:
 		for item in self._categorize_all_set_run:
 			if Path(item["path"]) == self._filepath:
 				flag = True
-				compared_vars: list[dict] = item["vars"]
+				compared_lines: list[str] = item["lines"]
 
 		if not flag:
 			return
@@ -41,17 +41,13 @@ class ParseTextTwee:
 				self._set_run_bool_list.append(False)
 				continue
 
-			for var_item in compared_vars:
-				if (
-					f"<<set {var_item['var']}" not in line
-					and f"run {var_item['var']}" not in line
-				):
+			for set_run_line in compared_lines:
+				if set_run_line not in line:
 					continue
 
-				if any(var_line in line for var_line in var_item["lines"]):
-					self._set_run_bool_list.append(True)
-					flag = True
-					break
+				self._set_run_bool_list.append(True)
+				flag = True
+				break
 
 			if not flag:
 				self._set_run_bool_list.append(False)
@@ -137,6 +133,9 @@ class ParseTextTwee:
 			and (
 				"<span " in line.strip()
 				or "<<link [[" in line.strip()
+				or "checkbox" in line.strip()
+				or "button" in line.strip()
+				or "dialog" in line.strip()
 				or any(re.findall(r"^(\w|- )", line.strip()))
 			)
 			for line in self._lines
